@@ -1,0 +1,1 @@
+.search-wrap{display:flex;align-items:center;width:100%;height:90rpx;color:#fff;background:#8B658B}.search{flex-grow:1;margin:15rpx 24rpx}

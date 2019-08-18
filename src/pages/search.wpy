@@ -1,0 +1,149 @@
+<style lang="less">
+  .button-wrap {
+    margin: 20rpx 30rpx;
+  }
+  .clean {
+    margin: 10rpx;
+  }
+  .container {
+    margin: 10rpx;
+  }
+</style>
+
+<template>
+  <view class="container">
+    aaa
+    <wxc-panel title="商品链接">
+      <textarea 
+        id="textarea"
+        auto-focus="true" 
+        bindblur="eidtTextarea" 
+        hint="300" 
+        value="{{searchContent}}" 
+        placeholder="{{hint}}" />
+    </wxc-panel>
+    <wxc-flex main="center">
+      <view class="button-wrap">
+        <wxc-button 
+          @tap="toHistory()" 
+          type="beauty" 
+          value="{{search}}"
+        />
+      </view>
+    </wxc-flex>
+    <wxc-panel title="历史记录">
+      <view class="list-item">
+        <wxc-list
+          wx:for="{{searchList}}"
+          wx:key="index"
+          class="item"
+          arrow="{{false}}"
+          desc="{{item.desc}}"
+          mode="{{index == searchList.length-1 ? 'none': 'normal'}}"
+          icon="{{item.icon}}"
+        />
+    </view>
+    </wxc-panel>
+    <wxc-flex class="clean" main="center">
+      <wxc-dialog 
+        class="wxc-dialog" 
+        title="确定清空所有历史记录?" 
+        confirm-text="确定" 
+        cancel-text="取消" 
+        bindconfirm="onConfirm" 
+        bindcancel="onCancel"
+      />
+      <wxc-button 
+        type="info" 
+        plain="true" 
+        @tap="doClean()" 
+        value="{{clean}}"
+      />
+    </wxc-flex>
+    <wxc-loadmore 
+      is-end="{{isEnd}}" 
+      text="～我是有底线的～" 
+      icon="{{true}}"
+    />
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import {
+    SEARCH_HISTORY
+  } from '../config/constant'
+  import api from '../api/api'
+  export default class Search extends wepy.page {
+    config = {
+      navigationBarTitleText: '查询商品历史价格',
+      usingComponents: {
+        'wxc-button': '../packages/@minui/wxc-button/dist/index',
+        'wxc-flex': '../packages/@minui/wxc-flex/dist/index',
+        'wxc-panel': '../packages/@minui/wxc-panel/dist/index',
+        'wxc-tab': '../packages/@minui/wxc-tab/dist/index',
+        'wxc-tab-panel': '../packages/@minui/wxc-tab/dist/panel',
+        'wxc-list': '../packages/@minui/wxc-list/dist/index',
+        'wxc-loadmore': '../packages/@minui/wxc-loadmore/dist/index',
+        'wxc-dialog': '../packages/@minui/wxc-dialog/dist/index',
+        'wxc-icon': '../packages/@minui/wxc-icon/dist/index'
+      }
+    }
+    data = {
+      hint: '请将购物App分享的链接粘贴到此处',
+      search: '查询历史价格',
+      clean: '清空历史记录',
+      searchContent: '',
+      searchList: [],
+      isEnd: true
+    }
+    methods = {
+      toHistory() {
+        if (this.searchContent && this.searchContent != '') {
+          this.getCommodity()
+        }
+      },
+      eidtTextarea(textarea) {
+        let searchContent = textarea.detail.value
+        if (searchContent && searchContent != '') {
+          this.searchContent = searchContent
+          this.getCommodity()
+        }
+      },
+      doClean() {
+        let dialogComponent = this.$wxpage.selectComponent('.wxc-dialog')
+        dialogComponent && dialogComponent.show()
+      },
+      onConfirm () {
+        wx.removeStorageSync(SEARCH_HISTORY)
+        this.searchList = []
+        let dialogComponent = this.$wxpage.selectComponent('.wxc-dialog')
+        dialogComponent && dialogComponent.hide()
+      },
+      onCancel () {
+        let dialogComponent = this.$wxpage.selectComponent('.wxc-dialog')
+        dialogComponent && dialogComponent.hide()
+      }
+    }
+    async getCommodity() {
+      const res = await api.getCommodityByUrl({
+        query: {
+          url: this.searchContent
+        }
+      })
+      if (res.statusCode == 200) {
+        console.log('查询历史价格成功')
+        this.$preload('commodity', res.data)
+        this.searchList.push({desc: res.data.name, icon: 'star'})
+        wx.setStorageSync(SEARCH_HISTORY, this.searchList)
+        this.$navigate('./history')
+      }
+    }
+    onLoad() {
+      let searchList = wx.getStorageSync(SEARCH_HISTORY)
+      if (searchList) {
+        this.searchList = searchList
+      }
+    }
+  }
+</script>

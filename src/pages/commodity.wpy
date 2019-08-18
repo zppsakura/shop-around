@@ -1,0 +1,139 @@
+<style lang="less">
+  .image-wrap {
+    width: 47%;
+    padding-bottom: 10rpx;
+  }
+  .image-wrap image {
+    width: 360rpx;
+    height: 360rpx;
+  }
+  .name {
+    font-size: 18rpx;
+    margin-bottom: 10rpx;
+  }
+  .label {
+    margin-right: 20rpx;
+  }
+  .price {
+    font-size: 36rpx;
+    font-weight: bold;
+    color: #ff4422;
+    margin-right: 10rpx;
+  }
+</style>
+
+<template>
+  <view>
+    <wxc-tab
+      bind:tabchange="onTabChange"
+      default-index="{{0}}"
+      active-text-color="#108ee9"
+      active-line-color="#108ee9"
+      component-id="store"
+      animate="{{true}}"
+    >
+      <wxc-tab-panel
+        wx:for="{{tabs}}"
+        wx:for-item="tab"
+        wx:key="{{tab.index}}"
+        tab-index="{{index}}"
+        component-id="store"
+        label="{{tab.title}}"
+      >
+        <wxc-flex wrap="wrap" main="between">
+          <wxc-panel 
+            border="{{false}}" 
+            class="image-wrap"
+            wx:for="{{depreciates}}"
+            wx:key="{{depreciate.rank}}"
+            wx:for-item="depreciate">
+            <view>
+              <image mode="aspectFill" src="{{depreciate.imgUrl}}"/>
+              <wxc-flex wrap="wrap" main="center">
+                <text class="name">{{depreciate.name}}</text>
+              </wxc-flex>
+              <wxc-flex wrap="wrap" main="center">
+                <wxc-label class="label" type="corner" type-color="#FF8C00">Top {{depreciate.rank}}</wxc-label>
+                <text class="price">直降</text>
+                <wxc-price class="price" icon="sub">{{depreciate.depreciate}}</wxc-price>
+              </wxc-flex>
+            </view>
+          </wxc-panel>
+        </wxc-flex>
+      </wxc-tab-panel>
+    </wxc-tab>
+    <wxc-loadmore 
+      is-end="{{isEnd}}" 
+      text="{{loadText}}" 
+      icon="{{true}}"
+    />
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import api from '../api/api'
+  export default class Rank extends wepy.page {
+    config = {
+      navigationBarTitleText: '降价排行榜',
+      usingComponents: {
+        'wxc-flex': '../packages/@minui/wxc-flex/dist/index',
+        'wxc-label': '../packages/@minui/wxc-label/dist/index',
+        'wxc-tab': '../packages/@minui/wxc-tab/dist/index',
+        'wxc-tab-panel': '../packages/@minui/wxc-tab/dist/panel',
+        'wxc-price': '../packages/@minui/wxc-price/dist/index',
+        'wxc-loadmore': '../packages/@minui/wxc-loadmore/dist/index',
+        'wxc-wxc-loading': '../packages/@minui/wxc-loading/dist/index',
+        'wxc-panel': '../packages/@minui/wxc-panel/dist/index'
+      }
+    }
+    data = {
+      days: [1, 3, 7, 30],
+      category: '',
+      day: 1,
+      isEnd: false,
+      loadText: "~加载中~",
+      tabs: [
+        {title: '一天'},
+        {title: '三天'},
+        {title: '一周'},
+        {title: '一月'}
+      ],
+      depreciates: []
+    }
+    onTabChange({detail}) {
+       this.getRankData(detail)
+    } 
+    async getRankData(detail) {
+      this.day = this.days[detail.key]
+      this.isEnd = false
+      this.loadText = '~加载中~'
+      const res = await api.getRankByCategoryAndDay({
+        query: {
+          category: this.category,
+          day: this.day
+        }
+      })
+      if (res.statusCode == 200) {
+        if (res.data.length >= 1) {
+          console.log('查询降价排行榜成功')
+          this.depreciates = res.data[0].depreciateDOList
+          let index = 1
+          this.depreciates.forEach(e => {
+            e.rank = index++
+          })
+          this.isEnd = true
+          this.loadText = '~没有更多了~'
+        } else {
+          this.depreciates = []
+          this.isEnd = true
+          this.loadText = '~没有更多了~'
+        }
+      }
+      this.$apply()
+    }
+    onLoad(params, data) {
+      this.category = data.preload.category
+    }
+  }
+</script>
